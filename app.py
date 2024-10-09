@@ -5,7 +5,6 @@ from PIL import Image
 import plotly.graph_objects as go
 from keras.models import load_model
 import requests
-import time
 import os
 
 # Set page config
@@ -30,25 +29,27 @@ st.markdown("""
 # Title with animation
 st.markdown('<h1 class="fade-in" style="text-align: center; color: white;">Emotion Classifier</h1>', unsafe_allow_html=True)
 
-# Load model from external source
-@st.cache_resource  # Caching the model to avoid reloading on every run
-def load_model_from_url(url):
+# Function to download the model from Google Drive
+@st.cache_resource
+def load_model_from_gdrive(gdrive_url):
     model_path = "model.h5"
     if not os.path.exists(model_path):
-        response = requests.get(url, stream=True)
-        with open(model_path, 'wb') as f:
-            f.write(response.content)
+        try:
+            with st.spinner('Downloading model...'):
+                response = requests.get(gdrive_url, stream=True)
+                with open(model_path, 'wb') as f:
+                    f.write(response.content)
+            st.success('Model downloaded and loaded successfully!')
+        except Exception as e:
+            st.error(f"Error downloading the model: {e}")
     return load_model(model_path)
 
-# URL to the hosted model (replace this with your actual model URL)
-model_url = 'https://your-external-storage/model.h5'
+# Replace 'YOUR_FILE_ID' with the actual file ID from your Google Drive link
+file_id = 'YOUR_FILE_ID'
+gdrive_url = f'https://drive.google.com/uc?export=download&id={file_id}'
 
-with st.spinner('Downloading and loading the model...'):
-    try:
-        resnet34 = load_model_from_url(model_url)
-        st.success('Model loaded successfully!')
-    except Exception as e:
-        st.error(f'Error loading model: {e}')
+# Load the model
+resnet34 = load_model_from_gdrive(gdrive_url)
 
 # Function to predict emotion
 def predict_emotion(img):
@@ -76,21 +77,24 @@ def predict_emotion(img):
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
+    # Display image
     image = Image.open(uploaded_file)
     st.image(image, caption='Uploaded Image', use_column_width=True)
-
+    
+    # Predict button with spinner
     if st.button('Predict Emotion'):
         with st.spinner('Analyzing...'):
             time.sleep(2)
             img_array = np.array(image)
             img_array = tf.convert_to_tensor(img_array, dtype=tf.float32)
             img_array = tf.image.convert_image_dtype(img_array, dtype=tf.float32)
-
+            
+            # Get prediction
             emotion, probabilities = predict_emotion(img_array)
-
+        
         # Display result with animation
         st.markdown(f'<h2 class="fade-in" style="text-align: center; color: white;">Predicted Emotion: {emotion.capitalize()}</h2>', unsafe_allow_html=True)
-
+        
         # Create a donut chart for probabilities
         fig = go.Figure(data=[go.Pie(labels=['Angry', 'Happy', 'Sad'],
                                      values=probabilities,
