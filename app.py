@@ -5,6 +5,7 @@ from PIL import Image
 import plotly.graph_objects as go
 from keras.models import load_model
 import requests
+import tempfile
 import os
 
 # Set page config
@@ -29,24 +30,27 @@ st.markdown("""
 # Title with animation
 st.markdown('<h1 class="fade-in" style="text-align: center; color: white;">Emotion Classifier</h1>', unsafe_allow_html=True)
 
-# Function to download the model from Google Drive link
+# Function to download and load the model from Google Drive link
 @st.cache_resource
 def load_model_from_gdrive(gdrive_url):
-    model_path = "model.h5"
-    
-    # Only download if the model file does not exist
-    if not os.path.exists(model_path):
-        try:
-            # Start the download process
-            with st.spinner('Downloading model from Google Drive...'):
+    try:
+        with st.spinner('Downloading model from Google Drive...'):
+            # Create a temporary file to store the model
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as temp_file:
                 response = requests.get(gdrive_url, stream=True)
-                with open(model_path, 'wb') as f:
-                    f.write(response.content)
-            st.success('Model downloaded and loaded successfully!')
-        except Exception as e:
-            st.error(f"Error downloading the model: {e}")
-            return None
-    return load_model(model_path)
+                if response.status_code == 200:
+                    temp_file.write(response.content)
+                    temp_file_path = temp_file.name
+                else:
+                    st.error(f"Failed to download the model. Status code: {response.status_code}")
+                    return None
+        
+        st.success('Model downloaded successfully!')
+        return load_model(temp_file_path)  # Load the model from the temporary file
+    
+    except Exception as e:
+        st.error(f"Error loading the model: {e}")
+        return None
 
 # Text input to get Google Drive link from the user
 gdrive_input = st.text_input("Enter the Google Drive link for the model")
