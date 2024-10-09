@@ -3,11 +3,8 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 import plotly.graph_objects as go
-from model import resnet34 # Assuming this is your model
+from keras.models import load_model  # Modified import
 import time
-
-# Load the model
-
 
 # Set page config
 st.set_page_config(page_title="Emotion Classifier", layout="wide")
@@ -31,8 +28,20 @@ st.markdown("""
 # Title with animation
 st.markdown('<h1 class="fade-in" style="text-align: center; color: white;">Emotion Classifier</h1>', unsafe_allow_html=True)
 
-# Function to predict emotion
+# File uploader for the Keras model
+uploaded_model = st.file_uploader("Upload your Keras model (.h5 or .keras)", type=["h5", "keras"])
+if uploaded_model is not None:
+    with st.spinner('Loading model...'):
+        try:
+            # Load the uploaded model
+            resnet34 = load_model(uploaded_model)
+            st.success('Model loaded successfully!')
+        except Exception as e:
+            st.error(f'Error loading model: {e}')
+else:
+    st.warning('Please upload a model to continue.')
 
+# Function to predict emotion
 def predict_emotion(img):
     classname = ["angry", "sad", "happy"]
     
@@ -58,8 +67,7 @@ def predict_emotion(img):
     
     return emotion, probabilities
 
-
-# File uploader
+# File uploader for the image
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
@@ -68,7 +76,7 @@ if uploaded_file is not None:
     st.image(image, caption='Uploaded Image', use_column_width=True)
     
     # Predict button with spinner
-    if st.button('Predict Emotion'):
+    if st.button('Predict Emotion') and uploaded_model is not None:
         with st.spinner('Analyzing...'):
             # Simulate a delay for effect
             time.sleep(2)
