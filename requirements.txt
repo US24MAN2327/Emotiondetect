@@ -4,3 +4,4 @@ numpy
 Pillow
 plotly
 matplotlib
+sklearn
