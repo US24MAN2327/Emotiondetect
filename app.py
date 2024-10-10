@@ -41,7 +41,7 @@ def load_model_from_dropbox(url):
     return load_model(model_path)
 
 # Dropbox public link to the model (ensure the link ends with dl=1 for direct download)
-dropbox_url = 'https://www.dropbox.com/s/your_model_file_path/model.h5?dl=1'
+dropbox_url = 'https://www.dropbox.com/scl/fi/0vjfk1isg73feb9wg80vn/seq.keras?rlkey=0xekvnj2fsa9qlunon5yca31m&st=e4xaxs2y&dl=0'
 
 with st.spinner('Downloading and loading the model...'):
     try:
