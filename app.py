@@ -5,8 +5,8 @@ from PIL import Image
 import plotly.graph_objects as go
 from keras.models import load_model
 import requests
-import tempfile
 import os
+import re
 
 # Set page config
 st.set_page_config(page_title="Emotion Classifier", layout="wide")
@@ -30,24 +30,42 @@ st.markdown("""
 # Title with animation
 st.markdown('<h1 class="fade-in" style="text-align: center; color: white;">Emotion Classifier</h1>', unsafe_allow_html=True)
 
-# Function to download and load the model from Google Drive link
+# Function to download large file from Google Drive
 @st.cache_resource
-def load_model_from_gdrive(gdrive_url):
-    try:
-        with st.spinner('Downloading model from Google Drive...'):
-            # Create a temporary file to store the model
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as temp_file:
-                response = requests.get(gdrive_url, stream=True)
-                if response.status_code == 200:
-                    temp_file.write(response.content)
-                    temp_file_path = temp_file.name
-                else:
-                    st.error(f"Failed to download the model. Status code: {response.status_code}")
-                    return None
-        
-        st.success('Model downloaded successfully!')
-        return load_model(temp_file_path)  # Load the model from the temporary file
+def download_large_file_from_gdrive(file_id, destination):
+    url = f"https://docs.google.com/uc?export=download&id={file_id}"
+    session = requests.Session()
+    response = session.get(url, stream=True)
     
+    # Handle Google Drive file download confirmation for large files
+    token = None
+    for key, value in response.cookies.items():
+        if key.startswith("download_warning"):
+            token = value
+    
+    if token:
+        params = {'confirm': token}
+        response = session.get(url, params=params, stream=True)
+
+    # Save the file in chunks to avoid memory issues
+    with open(destination, "wb") as f:
+        for chunk in response.iter_content(32768):
+            if chunk:
+                f.write(chunk)
+
+    return destination
+
+# Function to download the model from Google Drive link
+@st.cache_resource
+def load_model_from_gdrive(gdrive_link):
+    model_path = "model.h5"
+
+    # Extract file ID from Google Drive link
+    try:
+        file_id = re.search(r"/d/([a-zA-Z0-9_-]+)", gdrive_link).group(1)
+        download_large_file_from_gdrive(file_id, model_path)
+        st.success('Model downloaded and loaded successfully!')
+        return load_model(model_path)
     except Exception as e:
         st.error(f"Error loading the model: {e}")
         return None
@@ -56,16 +74,8 @@ def load_model_from_gdrive(gdrive_url):
 gdrive_input = st.text_input("Enter the Google Drive link for the model")
 
 if gdrive_input:
-    # Parse the input link to get the correct file ID and construct a direct download link
-    try:
-        file_id = gdrive_input.split('/d/')[1].split('/')[0]
-        gdrive_url = f'https://drive.google.com/uc?export=download&id={file_id}'
-
-        # Load the model using the generated URL
-        resnet34 = load_model_from_gdrive(gdrive_url)
-
-    except IndexError:
-        st.error("Please enter a valid Google Drive link.")
+    # Load the model using the provided Google Drive link
+    resnet34 = load_model_from_gdrive(gdrive_input)
 
     if resnet34:
         # Function to predict emotion
