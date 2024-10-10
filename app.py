@@ -3,9 +3,7 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 import plotly.graph_objects as go
-from keras.models import load_model
-import requests
-import os
+from keras.models import load_model  # Modified import
 import time
 
 # Set page config
@@ -30,25 +28,18 @@ st.markdown("""
 # Title with animation
 st.markdown('<h1 class="fade-in" style="text-align: center; color: white;">Emotion Classifier</h1>', unsafe_allow_html=True)
 
-# Function to download and load the model
-@st.cache_resource  # Cache the model so it's not re-downloaded multiple times
-def load_model_from_dropbox(url):
-    model_path = "model.h5"
-    if not os.path.exists(model_path):
-        response = requests.get(url, stream=True)
-        with open(model_path, 'wb') as f:
-            f.write(response.content)
-    return load_model(model_path)
-
-# Dropbox public link to the model (ensure the link ends with dl=1 for direct download)
-dropbox_url = 'https://www.dropbox.com/scl/fi/0vjfk1isg73feb9wg80vn/seq.keras?rlkey=0xekvnj2fsa9qlunon5yca31m&st=e4xaxs2y&dl=0'
-
-with st.spinner('Downloading and loading the model...'):
-    try:
-        resnet34 = load_model_from_dropbox(dropbox_url)
-        st.success('Model loaded successfully!')
-    except Exception as e:
-        st.error(f'Error loading model: {e}')
+# File uploader for the Keras model
+uploaded_model = st.file_uploader("Upload your Keras model (.h5 or .keras)", type=["h5", "keras"])
+if uploaded_model is not None:
+    with st.spinner('Loading model...'):
+        try:
+            # Load the uploaded model
+            resnet34 = load_model(uploaded_model)
+            st.success('Model loaded successfully!')
+        except Exception as e:
+            st.error(f'Error loading model: {e}')
+else:
+    st.warning('Please upload a model to continue.')
 
 # Function to predict emotion
 def predict_emotion(img):
@@ -66,9 +57,13 @@ def predict_emotion(img):
     # Perform prediction
     predicted = resnet34.predict(img)
     
-    # Get the predicted emotion
-    emotion = classname[np.argmax(predicted[0])]
-    probabilities = predicted[0]
+    # Check shape and content for debugging
+    print("Shape of predicted:", predicted.shape)
+    print("Predicted values:", predicted)
+    
+    # Get the predicted emotion (argmax returns the index of the highest probability)
+    emotion = classname[np.argmax(predicted[0])]  # predicted[0] since there's only one image in batch
+    probabilities = predicted[0]  # Extract the probabilities for that single prediction
     
     return emotion, probabilities
 
@@ -76,21 +71,26 @@ def predict_emotion(img):
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
+    # Display image
     image = Image.open(uploaded_file)
     st.image(image, caption='Uploaded Image', use_column_width=True)
-
-    if st.button('Predict Emotion'):
+    
+    # Predict button with spinner
+    if st.button('Predict Emotion') and uploaded_model is not None:
         with st.spinner('Analyzing...'):
+            # Simulate a delay for effect
             time.sleep(2)
+            # Convert PIL Image to numpy array, then to tensorflow tensor
             img_array = np.array(image)
             img_array = tf.convert_to_tensor(img_array, dtype=tf.float32)
             img_array = tf.image.convert_image_dtype(img_array, dtype=tf.float32)
-
+            
+            # Get prediction
             emotion, probabilities = predict_emotion(img_array)
-
+        
         # Display result with animation
         st.markdown(f'<h2 class="fade-in" style="text-align: center; color: white;">Predicted Emotion: {emotion.capitalize()}</h2>', unsafe_allow_html=True)
-
+        
         # Create a donut chart for probabilities
         fig = go.Figure(data=[go.Pie(labels=['Angry', 'Happy', 'Sad'],
                                      values=probabilities,
