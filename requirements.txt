@@ -4,10 +4,6 @@ tensorflow
 Pillow
 plotly
 keras
-Flask
-Flask-Login
-Flask-Migrate
-huggingface-hub
 keras
 matplotlib
 mediapipe
@@ -23,11 +19,3 @@ scikit-learn
 scipy
 seaborn
 streamlit
-tensorboard
-tensorboard-data-server
-tensorflow
-tensorflow-hub
-tensorflow-macos
-tf_keras
-torch
-Werkzeug
