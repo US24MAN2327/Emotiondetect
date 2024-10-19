@@ -109,7 +109,6 @@ tensorboard
 tensorboard-data-server
 tensorflow
 tensorflow-hub
-tensorflow-macos
 termcolor
 tf_keras
 threadpoolctl
