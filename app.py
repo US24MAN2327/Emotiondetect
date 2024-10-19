@@ -28,18 +28,15 @@ st.markdown("""
 # Title with animation
 st.markdown('<h1 class="fade-in" style="text-align: center; color: white;">Emotion Classifier</h1>', unsafe_allow_html=True)
 
-# File uploader for the Keras model
-uploaded_model = st.file_uploader("Upload your Keras model (.h5 or .keras)", type=["h5", "keras"])
-if uploaded_model is not None:
-    with st.spinner('Loading model...'):
-        try:
-            # Load the uploaded model
-            resnet34 = load_model(uploaded_model)
-            st.success('Model loaded successfully!')
-        except Exception as e:
-            st.error(f'Error loading model: {e}')
-else:
-    st.warning('Please upload a model to continue.')
+# Load the model from local file 'seq.keras'
+try:
+    with st.spinner('Loading model from file...'):
+        # Load the pre-trained model from the local file 'seq.keras'
+        model_file = "seq.keras"  # Path to your model file
+        resnet34 = load_model(model_file)
+        st.success('Model loaded successfully from seq.keras!')
+except Exception as e:
+    st.error(f'Error loading model: {e}')
 
 # Function to predict emotion
 def predict_emotion(img):
@@ -57,10 +54,6 @@ def predict_emotion(img):
     # Perform prediction
     predicted = resnet34.predict(img)
     
-    # Check shape and content for debugging
-    print("Shape of predicted:", predicted.shape)
-    print("Predicted values:", predicted)
-    
     # Get the predicted emotion (argmax returns the index of the highest probability)
     emotion = classname[np.argmax(predicted[0])]  # predicted[0] since there's only one image in batch
     probabilities = predicted[0]  # Extract the probabilities for that single prediction
@@ -76,7 +69,7 @@ if uploaded_file is not None:
     st.image(image, caption='Uploaded Image', use_column_width=True)
     
     # Predict button with spinner
-    if st.button('Predict Emotion') and uploaded_model is not None:
+    if st.button('Predict Emotion'):
         with st.spinner('Analyzing...'):
             # Simulate a delay for effect
             time.sleep(2)
