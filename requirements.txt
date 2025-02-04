@@ -1,6 +1,6 @@
 streamlit
 numpy
 tensorflow
-Pillow
+pillow
 plotly
-keras==3.3.3
+keras
